@@ -15,6 +15,9 @@ import { isDbConnected } from './config/db.js';
 
 export const app = express();
 
+// Trust proxy for Render/Vercel/Heroku reverse proxies to correctly handle HTTPS and secure cookies
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(
   helmet({
@@ -23,10 +26,13 @@ app.use(
   })
 );
 
+// Normalize CLIENT_URL (remove trailing slash if present)
+const clientUrl = env.CLIENT_URL ? env.CLIENT_URL.replace(/\/$/, '') : 'http://localhost:5173';
+
 // CORS configuration
 app.use(
   cors({
-    origin: [env.CLIENT_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: [clientUrl, 'http://localhost:5173', 'http://127.0.0.1:5173'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],

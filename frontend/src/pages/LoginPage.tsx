@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -16,6 +16,13 @@ export function LoginPage() {
   const [searchParams] = useSearchParams();
   const [errorMsg, setErrorMsg] = useState(searchParams.get('error') || '');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      setErrorMsg(decodeURIComponent(error));
+    }
+  }, [searchParams]);
 
   const handleGoogleLogin = async () => {
     setErrorMsg('');

@@ -11,13 +11,17 @@ export function AuthCallbackPage() {
   useEffect(() => {
     const error = searchParams.get('error');
     if (error) {
-      navigate(`/login?error=${encodeURIComponent(error)}`);
+      navigate(`/login?error=${encodeURIComponent(error)}`, { replace: true });
       return;
     }
 
-    refreshAuth().then(() => {
-      navigate('/inbox');
-    });
+    refreshAuth()
+      .then(() => {
+        navigate('/inbox', { replace: true });
+      })
+      .catch((err) => {
+        navigate(`/login?error=${encodeURIComponent(err?.message || 'Authentication session could not be established')}`, { replace: true });
+      });
   }, [searchParams, navigate, refreshAuth]);
 
   return (
