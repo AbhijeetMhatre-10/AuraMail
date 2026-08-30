@@ -14,21 +14,26 @@ export class ApiError extends Error {
   }
 }
 
+export const AUTH_TOKEN_KEY = 'auramail_session_token';
+
 export async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<{ data: T; meta?: any }> {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
 
-  const headers: HeadersInit = {
+  const token = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
+
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options.headers || {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...((options.headers as Record<string, string>) || {}),
   };
 
   const response = await fetch(url, {
     ...options,
     headers,
-    credentials: 'include', // Ensures HTTP-only session cookies are sent
+    credentials: 'include', // Ensures cookies are still sent when supported
   });
 
   let json: any;

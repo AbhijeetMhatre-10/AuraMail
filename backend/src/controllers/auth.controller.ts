@@ -38,8 +38,8 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
-      // Redirect back to frontend OAuth handler
-      return res.redirect(`${env.CLIENT_URL}/auth/callback?auth=success`);
+      // Redirect back to frontend OAuth handler with token param to guarantee cross-domain auth even when 3rd-party cookies are blocked by browsers
+      return res.redirect(`${env.CLIENT_URL}/auth/callback?token=${encodeURIComponent(token)}`);
     } catch (error: any) {
       console.error('OAuth callback failed:', error.message);
       return res.redirect(`${env.CLIENT_URL}/login?error=${encodeURIComponent(error.message || 'auth_failed')}`);

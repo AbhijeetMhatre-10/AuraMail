@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authApi } from '../services/api/auth.api';
 import { UserProfile, ConnectedAccountInfo } from '../types';
+import { AUTH_TOKEN_KEY } from '../services/api/client';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -33,11 +34,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         setAccount(null);
         setIsDemo(false);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(AUTH_TOKEN_KEY);
+        }
       }
     } catch (err) {
       setUser(null);
       setAccount(null);
       setIsDemo(false);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -61,6 +68,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const data = await authApi.demoLogin();
+      if (data.token && typeof window !== 'undefined') {
+        localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+      }
       setUser(data.user);
       setIsDemo(true);
       setAccount({
@@ -84,6 +94,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.warn('Logout API error:', err);
     } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+      }
       setUser(null);
       setAccount(null);
       setIsDemo(false);

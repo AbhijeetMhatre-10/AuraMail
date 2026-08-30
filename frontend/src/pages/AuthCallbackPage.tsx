@@ -15,6 +15,11 @@ export function AuthCallbackPage() {
       return;
     }
 
+    const token = searchParams.get('token');
+    if (token) {
+      localStorage.setItem('auramail_session_token', token);
+    }
+
     refreshAuth()
       .then(() => {
         navigate('/inbox', { replace: true });
