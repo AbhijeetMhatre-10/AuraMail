@@ -5,6 +5,7 @@ import { AIInsightPanel } from '../ai/AIInsightPanel';
 import { useCompose } from '../../context/ComposeContext';
 import { useToast } from '../ui/Toast';
 import { emailsApi } from '../../services/api/emails.api';
+import { aiApi } from '../../services/api/ai.api';
 import {
   ArrowLeft,
   Star,
@@ -15,6 +16,7 @@ import {
   Reply,
   Sparkles,
   Send,
+  X,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 
@@ -30,10 +32,29 @@ export function ThreadView({ thread, onBack, onThreadUpdated }: ThreadViewProps)
   const [quickReplyText, setQuickReplyText] = useState('');
   const [isSendingQuickReply, setIsSendingQuickReply] = useState(false);
   const [showInsights, setShowInsights] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [mobileInsightsOpen, setMobileInsightsOpen] = useState(false);
 
   const messages = thread.messages || [];
   const latestMessage = messages[messages.length - 1];
   const latestAnalysis = latestMessage?.aiAnalysis;
+
+  const handleRunAIAnalysis = async () => {
+    if (!latestMessage) return;
+    const emailId = latestMessage.id || latestMessage._id;
+    if (!emailId) return;
+
+    setIsAnalyzing(true);
+    try {
+      await aiApi.analyze(emailId);
+      success('Gemini 3.7 Flash analysis generated!');
+      onThreadUpdated?.();
+    } catch (err: any) {
+      error('AI Analysis failed', err.message || 'Could not reach Gemini API');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const handleStarToggle = async () => {
     if (!latestMessage) return;
@@ -98,7 +119,7 @@ export function ThreadView({ thread, onBack, onThreadUpdated }: ThreadViewProps)
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-950 overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-slate-950 overflow-hidden relative">
       {/* Top Header Bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-3 min-w-0">
@@ -118,10 +139,14 @@ export function ThreadView({ thread, onBack, onThreadUpdated }: ThreadViewProps)
 
         {/* Header Action Buttons */}
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
+          {/* Desktop Toggle Button */}
           <button
             type="button"
-            onClick={() => setShowInsights(!showInsights)}
-            className={`p-1.5 rounded-xl border text-xs font-medium flex items-center gap-1 transition-colors ${
+            onClick={() => {
+              setShowInsights(!showInsights);
+              setMobileInsightsOpen(!mobileInsightsOpen);
+            }}
+            className={`p-1.5 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition-colors ${
               showInsights
                 ? 'bg-indigo-600/25 border-indigo-500 text-indigo-300'
                 : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
@@ -233,19 +258,65 @@ export function ThreadView({ thread, onBack, onThreadUpdated }: ThreadViewProps)
           </div>
         </div>
 
-        {/* Right Column: AI Insights Sidebar */}
-        {showInsights && latestAnalysis && (
-          <div className="w-80 lg:w-96 border-l border-slate-800 bg-slate-900/50 p-4 sm:p-5 overflow-y-auto shrink-0 hidden md:block">
-            <div className="flex items-center justify-between mb-4">
+        {/* Right Column: AI Insights Sidebar (Always visible on desktop when showInsights is true) */}
+        {showInsights && (
+          <aside className="w-80 lg:w-96 border-l border-slate-800 bg-slate-900/60 p-4 sm:p-5 overflow-y-auto shrink-0 hidden md:block backdrop-blur-md">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
               <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                AI Intelligence Brief
+                Gemini AI Brief
               </h3>
+              <button
+                type="button"
+                onClick={handleRunAIAnalysis}
+                disabled={isAnalyzing}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 transition-all disabled:opacity-50"
+              >
+                <Sparkles className="w-3 h-3 text-indigo-400" />
+                <span>{isAnalyzing ? 'Analyzing...' : latestAnalysis ? 'Re-Analyze' : 'Analyze'}</span>
+              </button>
             </div>
-            <AIInsightPanel analysis={latestAnalysis} />
-          </div>
+
+            <AIInsightPanel
+              analysis={latestAnalysis}
+              isLoading={isAnalyzing}
+              onAnalyze={handleRunAIAnalysis}
+            />
+          </aside>
         )}
       </div>
+
+      {/* Mobile Drawer for AI Insights */}
+      {mobileInsightsOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col md:hidden">
+          <div
+            onClick={() => setMobileInsightsOpen(false)}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+          />
+          <div className="relative mt-auto w-full max-h-[85vh] bg-slate-900 border-t border-slate-800 rounded-t-3xl p-5 z-10 shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
+              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-400" />
+                Gemini AI Brief
+              </h3>
+              <button
+                type="button"
+                onClick={() => setMobileInsightsOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 pb-4">
+              <AIInsightPanel
+                analysis={latestAnalysis}
+                isLoading={isAnalyzing}
+                onAnalyze={handleRunAIAnalysis}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

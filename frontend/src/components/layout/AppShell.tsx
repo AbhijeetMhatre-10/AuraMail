@@ -4,6 +4,7 @@ import { SidebarNavigation } from './SidebarNavigation';
 import { Header } from './Header';
 import { ComposeModal } from '../compose/ComposeModal';
 import { PanelResizer } from '../ui/PanelResizer';
+import { GlobalLoadingIndicator } from '../common/GlobalLoadingIndicator';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 
@@ -97,6 +98,9 @@ export function AppShell() {
 
       {/* Global Compose Modal */}
       <ComposeModal />
+
+      {/* Real-time Global Pending / Loading Indicator */}
+      <GlobalLoadingIndicator />
     </div>
   );
 }

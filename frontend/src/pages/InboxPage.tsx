@@ -239,16 +239,38 @@ export function InboxPage() {
           !selectedEmailId ? 'hidden lg:flex' : 'flex w-full'
         }`}
       >
-        {selectedEmailId && activeThread ? (
-          <ThreadView
-            thread={activeThread}
-            onBack={() => setSelectedEmailId(null)}
-            onThreadUpdated={() => {
-              refetchThread();
-              queryClient.invalidateQueries({ queryKey: ['emails'] });
-              queryClient.invalidateQueries({ queryKey: ['activity'] });
-            }}
-          />
+        {selectedEmailId ? (
+          isThreadLoading ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-950">
+              <div className="h-12 w-12 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-center mb-3">
+                <Sparkles className="w-6 h-6 text-indigo-400 animate-spin" />
+              </div>
+              <p className="text-sm font-semibold text-slate-200">Loading conversation...</p>
+              <p className="text-xs text-slate-500 mt-1">Retrieving email messages & Gemini AI insights</p>
+            </div>
+          ) : activeThread ? (
+            <ThreadView
+              thread={activeThread}
+              onBack={() => setSelectedEmailId(null)}
+              onThreadUpdated={() => {
+                refetchThread();
+                queryClient.invalidateQueries({ queryKey: ['emails'] });
+                queryClient.invalidateQueries({ queryKey: ['activity'] });
+              }}
+            />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-950">
+              <Mail className="w-10 h-10 text-slate-600 mb-3" />
+              <p className="text-sm font-semibold text-slate-300">Unable to load this conversation</p>
+              <button
+                type="button"
+                onClick={() => refetchThread()}
+                className="mt-3 px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-md transition-colors"
+              >
+                Reload Thread
+              </button>
+            </div>
+          )
         ) : (
           <div className="hidden lg:flex flex-col items-center justify-center h-full text-center p-8 select-none">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900 border border-slate-800 text-slate-600 shadow-inner mb-4">

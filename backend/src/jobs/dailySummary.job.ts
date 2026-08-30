@@ -62,13 +62,22 @@ Return ONLY valid JSON:
 }
 `;
 
-        const res = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt,
-          config: { temperature: 0.2, responseMimeType: 'application/json' },
-        });
-
-        const text = res.text?.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+        let text = '';
+        try {
+          const res = await ai.models.generateContent({
+            model: 'gemini-3.7-flash',
+            contents: prompt,
+            config: { temperature: 0.2, responseMimeType: 'application/json' },
+          });
+          text = res.text?.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim() || '';
+        } catch {
+          const fallbackRes = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: { temperature: 0.2, responseMimeType: 'application/json' },
+          });
+          text = fallbackRes.text?.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim() || '';
+        }
         if (text) {
           const parsed = JSON.parse(text);
           await DailySummary.create({

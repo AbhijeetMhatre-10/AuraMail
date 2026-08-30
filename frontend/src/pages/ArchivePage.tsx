@@ -8,7 +8,7 @@ import { EmptyState } from '../components/common/EmptyState';
 import { ErrorState } from '../components/common/ErrorState';
 import { PanelResizer } from '../components/ui/PanelResizer';
 import { useToast } from '../components/ui/Toast';
-import { Archive, Mail, RefreshCw } from 'lucide-react';
+import { Archive, Mail, RefreshCw, Sparkles } from 'lucide-react';
 import { EmailItem } from '../types';
 
 const DEFAULT_LIST_WIDTH = 380;
@@ -48,7 +48,7 @@ export function ArchivePage() {
     queryFn: () => emailsApi.getEmails({ folder: 'archive' }),
   });
 
-  const { data: activeThread, refetch: refetchThread } = useQuery({
+  const { data: activeThread, isLoading: isThreadLoading, refetch: refetchThread } = useQuery({
     queryKey: ['thread', selectedEmailId],
     queryFn: () => (selectedEmailId ? emailsApi.getThread(selectedEmailId) : null),
     enabled: Boolean(selectedEmailId),
@@ -197,16 +197,38 @@ export function ArchivePage() {
           !selectedEmailId ? 'hidden lg:flex' : 'flex w-full'
         }`}
       >
-        {selectedEmailId && activeThread ? (
-          <ThreadView
-            thread={activeThread}
-            onBack={() => setSelectedEmailId(null)}
-            onThreadUpdated={() => {
-              refetchThread();
-              queryClient.invalidateQueries({ queryKey: ['emails'] });
-              queryClient.invalidateQueries({ queryKey: ['activity'] });
-            }}
-          />
+        {selectedEmailId ? (
+          isThreadLoading ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-950">
+              <div className="h-12 w-12 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-center mb-3">
+                <Sparkles className="w-6 h-6 text-indigo-400 animate-spin" />
+              </div>
+              <p className="text-sm font-semibold text-slate-200">Loading conversation...</p>
+              <p className="text-xs text-slate-500 mt-1">Retrieving archived message details</p>
+            </div>
+          ) : activeThread ? (
+            <ThreadView
+              thread={activeThread}
+              onBack={() => setSelectedEmailId(null)}
+              onThreadUpdated={() => {
+                refetchThread();
+                queryClient.invalidateQueries({ queryKey: ['emails'] });
+                queryClient.invalidateQueries({ queryKey: ['activity'] });
+              }}
+            />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-950">
+              <Mail className="w-10 h-10 text-slate-600 mb-3" />
+              <p className="text-sm font-semibold text-slate-300">Unable to load this conversation</p>
+              <button
+                type="button"
+                onClick={() => refetchThread()}
+                className="mt-3 px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-md transition-colors"
+              >
+                Reload Thread
+              </button>
+            </div>
+          )
         ) : (
           <div className="hidden lg:flex flex-col items-center justify-center h-full text-center p-8 select-none">
             <Mail className="w-12 h-12 text-slate-700 mb-2" />
