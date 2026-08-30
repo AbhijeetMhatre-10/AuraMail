@@ -102,63 +102,53 @@ export interface SmartSearchParams {
 }
 
 export class GeminiService {
-  private static readonly PRIMARY_MODEL = 'gemini-3.7-flash';
-  private static readonly FALLBACK_MODEL = 'gemini-2.5-flash';
-  private static readonly SECONDARY_FALLBACK = 'gemini-2.0-flash';
+  private static get candidateModels(): string[] {
+    const custom = env.GEMINI_MODEL;
+
+    const candidates = [
+      custom,
+      'gemini-3.6-flash',
+      'gemini-3.7',
+      'gemini-3.5',
+    ].filter(Boolean) as string[];
+
+    return Array.from(new Set(candidates));
+  }
 
   private static async executePrompt(prompt: string, expectJson = true): Promise<string> {
     const ai = getGeminiClient();
     const config = expectJson
       ? {
-          temperature: 0.2,
-          responseMimeType: 'application/json',
-        }
+        temperature: 0.2,
+        responseMimeType: 'application/json',
+      }
       : {
-          temperature: 0.3,
-        };
+        temperature: 0.3,
+      };
 
-    // Attempt 1: Gemini 3.7 Flash
-    try {
-      const response = await ai.models.generateContent({
-        model: this.PRIMARY_MODEL,
-        contents: prompt,
-        config,
-      });
+    const models = this.candidateModels;
+    let lastError: any = null;
 
-      const text = response.text || '';
-      if (text) return text;
-    } catch (error: any) {
-      console.warn(`Primary Gemini model (${this.PRIMARY_MODEL}) failed, trying fallback: ${error.message}`);
+    for (const model of models) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: prompt,
+          config,
+        });
+
+        const text = response.text || '';
+        if (text) return text;
+      } catch (error: any) {
+        lastError = error;
+        console.warn(`Gemini model '${model}' attempt failed: ${error.message}`);
+      }
     }
 
-    // Attempt 2: Gemini 2.5 Flash
-    try {
-      const fallbackResponse = await ai.models.generateContent({
-        model: this.FALLBACK_MODEL,
-        contents: prompt,
-        config,
-      });
-      const fallbackText = fallbackResponse.text || '';
-      if (fallbackText) return fallbackText;
-    } catch (fallbackError: any) {
-      console.warn(`Secondary Gemini model (${this.FALLBACK_MODEL}) failed: ${fallbackError.message}`);
-    }
-
-    // Attempt 3: Gemini 2.0 Flash
-    try {
-      const secondaryResponse = await ai.models.generateContent({
-        model: this.SECONDARY_FALLBACK,
-        contents: prompt,
-        config,
-      });
-      const secondaryText = secondaryResponse.text || '';
-      if (secondaryText) return secondaryText;
-    } catch (secError: any) {
-      console.error('❌ All Gemini models failed:', secError.message);
-      throw AppError.aiError(`Gemini AI analysis failed across models: ${secError.message}`);
-    }
-
-    throw AppError.aiError('Empty response from Gemini API');
+    console.error('❌ All Gemini candidate models failed:', lastError?.message);
+    throw AppError.aiError(
+      `Gemini AI analysis failed: ${lastError?.message || 'Check GEMINI_API_KEY and model configuration'}`
+    );
   }
 
   private static parseJsonSafely<T>(text: string, fallback: T): T {

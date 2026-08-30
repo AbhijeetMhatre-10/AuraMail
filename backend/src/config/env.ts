@@ -16,6 +16,7 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
   GOOGLE_REDIRECT_URI: z.string().default('http://localhost:5001/api/auth/google/callback'),
   GEMINI_API_KEY: z.string().optional().default(''),
+  GEMINI_MODEL: z.string().default('gemini-3.6-flash'),
 });
 
 const parsed = envSchema.safeParse(process.env);
